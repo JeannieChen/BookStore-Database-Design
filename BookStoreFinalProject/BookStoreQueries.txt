@@ -1,0 +1,176 @@
+(1) Checkpoint#2. Question 3  (Also Checkpoint#3 Question 3)
+
+(a) Find the titles of all books by Pratchett that cost less than $10.
+SELECT Title
+FROM BOOK
+WHERE Price < 10 and ISBN in 
+(SELECT ISBN
+FROM AUTHOR_WRITE_BOOK, AUTHOR
+WHERE AUTHOR_WRITE_BOOK.Aphone_num = AUTHOR.Phone_num 
+AND AUTHOR.Lname = 'Pratchett');
+
+(b) Give all the titles and their dates of purchase made by a single customer.
+
+select B.title, T.date
+from BOOK B, TRANSACTION_HISTORY T, BOOK_HAS_TRANSACTION BT, CUSTOMER C
+where B.ISBN = BT.ISBN AND T.transaction_id = BT.transaction_id AND C.email = T.Cmail and C.email = 'brutusbuckeye@gmail.com';
+
+(c) Find the titles and ISBNs for all books with less than 5 copies in stock.	
+
+SELECT  B.title, B.ISBN
+FROM BOOK AS B, INVENTORY_STORE_BOOK AS ISB
+WHERE ISB.amount<5 AND ISB.ISBN = B.ISBN;
+
+(d) Give all the customers who purchased a book by Pratchett and the titles of Pratchett books they purchased.
+
+SELECT  C.Fname, C.Lname, B.title
+FROM CUSTOMER C, BOOK B, AUTHOR A, AUTHOR_WRITE_BOOK AWB, TRANSACTION_HISTORY T, BOOK_HAS_TRANSACTION BT
+WHERE  A.phone_num = AWB.Aphone_num
+AND AWB.ISBN = B.ISBN
+AND B.ISBN = BT.ISBN
+AND T.Cmail = C.email
+AND BT.transaction_id = T.transaction_id
+AND  A.Lname  =  'Pratchett';
+
+(e) Find the total number of books purchased by a single customer 	
+
+SELECT SUM(T.amount)
+FROM CUSTOMER C, TRANSACTION_HISTORY T
+WHERE T.sold = 'TRUE'
+AND C.email = T.Cmail
+AND C.Fname = 'John' AND C.Lname = 'Smith';
+
+(f) Find the customer who has purchased the most books and the total number of books they have purchased. 
+
+select Lname, Fname, Max(s_amount)
+from (select C.Lname, C.Fname, sum(T.amount) as s_amount
+ from CUSTOMER AS C, TRANSACTION_HISTORY AS T
+where T.sold = 'TRUE' and C.email = T.Cmail
+group by C.email);
+
+(2) Checkpoint#2. Question 4 (Also Checkpoint#3. Question4)
+
+(a) Find titles and ratings of books which have the highest average rating.
+
+SELECT title, max(avg_rating)
+FROM 
+(SELECT title, avg(Rating) AS avg_rating
+ FROM BOOK, REVIEW
+ WHERE BOOK.ISBN = REVIEW.ISBN
+ GROUP BY BOOK.ISBN);
+
+* Assume a customer bought textbooks for himself or herself 
+               
+ (b)   Find all the courses he or she takes this term 
+
+SELECT C.email, CUB.course_num
+FROM COURSE_USE_BOOK AS CUB, TRANSACTION_HISTORY AS T, BOOK AS B, CUSTOMER AS C,
+BOOK_HAS_TRANSACTION AS BHT
+WHERE T.Cmail = 'brutusbuckeye@gmail.com'
+AND C.email = T.Cmail
+AND T.transaction_id = BHT.transaction_id
+AND BHT.ISBN = B.ISBN
+AND B.ISBN = CUB.ISBN
+
+ (c)   Find all textbooks he or she might want to buy in next term
+
+SELECT T.Cmail, B.title
+FROM TRANSACTION_HISTORY T, BOOK_HAS_TRANSACTION BT, COURSE_USE_BOOK CB, POST_COURSE PC, BOOK B
+WHERE T.Cmail = 'brutusbuckeye@gmail.com'
+AND BT.transaction_id = T.transaction_id
+AND CB.ISBN = BT.ISBN
+AND PC.prerequisite_num = CB.course_num
+AND B.ISBN = BT.ISBN
+
+(3) Checkpoint#3. Question 5
+(a)  Provide a list of customer names, along with the total dollar amount each customer has spent.
+
+CREATE VIEW money_spent(Fist_name, Last_name, dollar_spent)
+AS SELECT C.Fname, C.Lname, sum(T.amount * B.price)
+FROM CUSTOMER C, BOOK B, TRANSACTION_HISTORY T, BOOK_HAS_TRANSACTION BT
+WHERE C.email = T.Cmail 
+AND T.transaction_id = BT.transaction_id AND B.ISBN = BT.ISBN
+GROUP BY C.email
+
+
+(b)  Provide a list of customer names and e-mail addresses for customers who have spent more than the average customer.
+
+
+CREATE VIEW more_than_average(First_name, Last_name, Email_Address)
+      	AS SELECT Fname, Lname, email
+FROM (SELECT Fname, Lname, email, sum(T.amount * B.price) as cost
+FROM CUSTOMER C, BOOK B, TRANSACTION_HISTORY T, BOOK_HAS_TRANSACTION BT
+WHERE C.email = T.Cmail AND T.transaction_id = BT.transaction_id AND B.ISBN = BT.ISBN
+GROUP BY C.email),
+(SELECT avg(dollar_spent) AS avg_spent
+ 	FROM money_spent)
+WHERE  cost > avg_spent;
+
+
+(c) Provide a list of the titles in the database and associated total copies sold to customers, sorted from the title that has sold the most individual copies to the title that has sold the least.
+
+CREATE VIEW BEST_SELL
+AS SELECT B.title, SUM(T.amount) AS sales
+FROM BOOK AS B, TRANSACTION_HISTORY AS T,BOOK_has_TRANSACTION AS BHT
+WHERE T.sold = 'TRUE'
+    	AND T.transaction_id = BHT.transaction_id
+    	AND BHT.ISBN = B.ISBN
+GROUP BY BHT.ISBN
+ORDER BY sales DESC;
+
+
+(d) Provide a list of the titles in the database and associated dollar totals for copies sold to customers, sorted from the title that has sold the highest dollar amount to the title that has sold the smallest.
+CREATE VIEW BEST_PROFITS
+AS SELECT B.title, sum(T.amount * B.price) AS profits
+FROM BOOK AS B, TRANSACTION_HISTORY AS T, BOOK_has_TRANSACTION AS BT
+WHERE T.sold = 'TRUE'
+   	AND T.transaction_id = BT. transaction_id
+   	AND BT.ISBN = B.ISBN
+GROUP BY BT.ISBN
+ORDER BY profits DESC;
+
+(e) Find the most popular author in the database (i.e. the one who has sold the most books)
+CREATE VIEW MOST_POPULAR_AUTHOR
+AS SELECT A_1.Fname, A_1.Mname, A_1.Lname, A_1.phone_num
+FROM (SELECT max(B.sales_amount) AS max_sales
+FROM BOOK AS B, AUTHOR AS A, AUTHOR_WRITE_BOOK AS AB
+WHERE B.ISBN = AB.ISBN
+AND AB.Aphone_num = A.phone_num) AS R, BOOK AS B_1, AUTHOR AS A_1,
+AUTHOR_WRITE_BOOK AS AB_1
+WHERE B_1.ISBN = AB_1.ISBN 
+AND AB_1.Aphone_num = A_1.phone_num 
+AND B_1.sales_amount = max_sales;
+
+
+(f) Find the most profitable author in the database for this store (i.e. the one who has brought in the most money)
+CREATE VIEW MOST_PROFITABLE_AUTHOR
+AS SELECT A_1.Fname, A_1.Mname, A_1.Lname, A_1.phone_num
+FROM (SELECT max(B.sales_amount * B.price) AS max_profits
+FROM BOOK AS B, AUTHOR AS A, AUTHOR_WRITE_BOOK AS AB
+WHERE B.ISBN = AB.ISBN
+AND AB.Aphone_num = A.phone_num) AS R, BOOK AS B_1, AUTHOR AS A_1,
+AUTHOR_WRITE_BOOK AS AB_1
+WHERE B_1.ISBN = AB_1.ISBN 
+AND AB_1.Aphone_num = A_1.phone_num 
+AND B_1.sales_amount * B_1.price = max_profits;
+
+
+(g) Provide a list of customer information for customers who purchased anything written by the most profitable author in the database.
+CREATE VIEW CPMPA
+AS SELECT DISTINCT C.Fname, C.Lname, C.email
+FROM CUSTOMER AS C, TRANSACTION_HISTORY AS T,
+BOOK_HAS_TRANSACTION AS BT, AUTHOR_WRITE_BOOK AS AB, MOST_PROFITABLE_AUTHOR AS MPA
+WHERE C.email = T.Cmail
+AND T.transaction_id = BT.transaction_id
+AND BT.ISBN = AB.ISBN
+AND AB.Aphone_num = MPA.phone_num;
+		
+(h) Provide the list of authors who wrote the books purchased by the customers who have spent more than the average customer.
+CREATE VIEW NEWVIEW_H
+AS SELECT DISTINCT A.Fname, A.Mname, A.Lname
+FROM more_than_average AS MA, AUTHOR AS A, AUTHOR_WRiTE_BOOK AS AB,
+BOOK_HAS_TRANSACTION AS BT, TRANSACTION_HISTORY AS T, CUSTOMER AS C
+WHERE MA.Email_Address = T.Cmail
+AND T.transaction_id = BT.transaction_id
+AND BT.ISBN = AB.ISBN
+AND AB.Aphone_num = A.phone_num;
