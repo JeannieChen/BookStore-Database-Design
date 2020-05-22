@@ -1,0 +1,16 @@
+INSERT syntax for adding new books, publishers, authors and customers to your system.
+(a) INSERT INTO BOOK VALUES (‘3334455555’,’MCGRILL’,’2’);
+(b) INSERT INTO PUBLISHER VALUES (‘Del Rey’, ‘1234567890’);
+(c) INSERT INTO AUTHOR VALUES(‘JOHN’,NULL,’SMITH’,’614367489’);
+(d) INSERT INTO CUSTOMER VALUES(‘1232345@gmail.com’, ‘1928304812’, ‘Chloe’, ‘Chen’);
+
+DELETE syntax for removing books, publishers, authors and customers  from your system.
+(a) DELETE FROM BOOK 
+      WHERE ISBN = ’3334455555’ AND Pname = ’MCGRILL’ AND edition = ’2’;
+(b) DELETE FROM PUBLISHER 
+      WHERE name = ’Del Rey’ AND phone_num = ’1234567890’;
+(c) DELETE FROM AUTHOR 
+      WHERE Fname = ‘JOHN’ AND Lname = ‘SMITH’;
+(d) DELETE FROM CUSTOMER 
+       WHERE email = ’1232345@gmail.com’ AND phone_num = ’1928304812’ AND   
+       Fname=’Chloe’ AND Lname=’Chen’;
